@@ -1,9 +1,7 @@
 package com.mglabs.mylocation;
 
-import android.annotation.SuppressLint;
 import android.location.Location;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,10 +16,11 @@ import com.google.android.gms.location.LocationServices;
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
 
-    private  final String LOG_TAG = "MgTestApp";
+    private  final String LOG_TAG = "MGTestApp";
 
     private TextView txtLatitude;
     private TextView txtLongitude;
+    private Location mLastLocation;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
 
@@ -30,23 +29,27 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //GoogleApiClient to talk to Google Services
+        txtLatitude = findViewById(R.id.txtLatitude);
+        txtLongitude = findViewById(R.id.txtLongitude);
+        buildGoogleApiClient();
+    }
+
+    //Custom method to create an instance of the GoogleApiClient to talk to Google Services
+    protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-
-        txtLatitude = findViewById(R.id.txtLatitude);
-        txtLongitude = findViewById(R.id.txtLongitude);
-Log.i(LOG_TAG, "onCreate method");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         //Connect the client
-        mGoogleApiClient.connect();
+        mGoogleApiClient.connect();  //when this is done (successfully), it'll fire the onConnected.
+                                    // Otherwise it'll fire onConnectionFailed. If it did connect but something went wrong,
+                                    //it'll fire onConnectionSuspended
     }
 
     @Override
@@ -60,22 +63,13 @@ Log.i(LOG_TAG, "onCreate method");
 
     @Override
     public void onConnected(Bundle bundle) {
+        //whenever we need continuos updates, we want a LocationRequest
         mLocationRequest = LocationRequest.create();
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);   //ricorda che il manifest sovrascrive questi settings
         mLocationRequest.setInterval(1000);         //update location every second
         Log.i(LOG_TAG, "on CONNECTED method");
 
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        //LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        Log.i(LOG_TAG, "on location CHANGED method");
-
-        //txtOutput.setText(location.toString());
-        txtLatitude.setText("Latitude: " + Double.toString((location.getLatitude())));
-        txtLongitude.setText("Longitude: " + Double.toString((location.getLongitude())));
     }
 
     @Override
@@ -85,8 +79,17 @@ Log.i(LOG_TAG, "onCreate method");
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.i(LOG_TAG, "Non si connetteee!");
+        Log.i(LOG_TAG, connectionResult.getErrorMessage());
 
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.i(LOG_TAG, "on location CHANGED method");
+
+        //txtOutput.setText(location.toString());
+        txtLatitude.setText(Double.toString((location.getLatitude())));
+        txtLongitude.setText(Double.toString((location.getLongitude())));
     }
 
 
